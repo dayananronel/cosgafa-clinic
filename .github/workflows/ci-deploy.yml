@@ -33,6 +33,13 @@ jobs:
     needs: test
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    # Pages deployments from different branches/commits race for the
+    # same environment; this serializes them (queue, don't cancel) so a
+    # push to main right after a push to the feature branch doesn't fail
+    # outright — the GitHub-recommended pattern for this workflow shape.
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false
     permissions:
       contents: read
       pages: write
