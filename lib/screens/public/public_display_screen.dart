@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../services/clinic_repository.dart';
+import '../../services/clinic_api.dart';
 
 /// Spec 10.6 / 12: Public Queue Display. Shows only queue numbers — never
 /// patient names, addresses, phone numbers, medical history, diagnosis,
@@ -12,7 +12,7 @@ class PublicDisplayScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repo = context.watch<ClinicRepository>();
+    final repo = context.watch<ClinicApi>();
     final current = repo.currentlyServingEntry;
     final next = repo.doctorQueueSorted.take(3).toList();
 

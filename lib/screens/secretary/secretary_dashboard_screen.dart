@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
-import '../../services/clinic_repository.dart';
+import '../../services/clinic_api.dart';
 import '../../utils/formatters.dart';
 import '../../utils/theme.dart';
 import '../../widgets/clinic_app_bar.dart';
@@ -22,7 +22,7 @@ class SecretaryDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repo = context.watch<ClinicRepository>();
+    final repo = context.watch<ClinicApi>();
     final waitingIntake = repo.waitingForIntakeQueue.length + repo.inIntakeQueue.length;
 
     return Scaffold(
@@ -146,7 +146,7 @@ class _IntakeRow extends StatelessWidget {
   const _IntakeRow({required this.entry, required this.repo});
 
   final QueueEntry entry;
-  final ClinicRepository repo;
+  final ClinicApi repo;
 
   @override
   Widget build(BuildContext context) {

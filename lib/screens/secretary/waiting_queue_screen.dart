@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/clinic_repository.dart';
+import '../../providers/auth_session.dart';
+import '../../services/clinic_api.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/clinic_app_bar.dart';
 import '../../widgets/patient_avatar.dart';
@@ -39,8 +39,8 @@ class _WaitingQueueScreenState extends State<WaitingQueueScreen> with SingleTick
 
   @override
   Widget build(BuildContext context) {
-    final repo = context.watch<ClinicRepository>();
-    final actor = context.read<AuthProvider>().currentUser?.name ?? 'Secretary';
+    final repo = context.watch<ClinicApi>();
+    final actor = context.read<AuthSession>().currentUser?.name ?? 'Secretary';
 
     return Scaffold(
       appBar: const ClinicAppBar(title: 'Waiting Queue'),
@@ -82,8 +82,8 @@ class _WaitingQueueScreenState extends State<WaitingQueueScreen> with SingleTick
                   emptyText: 'No patients waiting for the doctor.',
                   showPosition: true,
                   actionBuilder: (entry) => OutlinedButton(
-                    onPressed: () {
-                      repo.markTemporarilyAway(entry.id, actor: actor);
+                    onPressed: () async {
+                      await repo.markTemporarilyAway(entry.id, actor: actor);
                     },
                     child: const Text('Mark Away'),
                   ),
@@ -100,11 +100,11 @@ class _WaitingQueueScreenState extends State<WaitingQueueScreen> with SingleTick
                   emptyText: 'No skipped or temporarily-away patients.',
                   actionBuilder: (entry) => entry.status == QueueStatus.skipped
                       ? FilledButton.tonal(
-                          onPressed: () => repo.requeue(entry.id, actor: actor),
+                          onPressed: () async => repo.requeue(entry.id, actor: actor),
                           child: const Text('Requeue'),
                         )
                       : OutlinedButton(
-                          onPressed: () => repo.returnFromAway(entry.id, actor: actor),
+                          onPressed: () async => repo.returnFromAway(entry.id, actor: actor),
                           child: const Text('Returned'),
                         ),
                 ),
@@ -132,7 +132,7 @@ class _EntryList extends StatelessWidget {
   });
 
   final List<QueueEntry> entries;
-  final ClinicRepository repo;
+  final ClinicApi repo;
   final String emptyText;
   final Widget Function(QueueEntry entry)? actionBuilder;
   final bool showPosition;

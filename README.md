@@ -6,13 +6,21 @@ queue workflow for a small pediatric clinic where one secretary handles
 intake and vitals, and the doctor holds sole authority over clinical
 priority decisions.
 
-This is the **Phase 1 prototype** called for in the spec (section 19,
-"Build clickable/mock UI before backend implementation") — a real,
-runnable Flutter app with the full business logic implemented, but
-backed by an in-memory repository instead of a networked API and
-database. **[`docs/PHASE_2_BACKEND_SCOPE.md`](docs/PHASE_2_BACKEND_SCOPE.md)**
-scopes out what replacing that in-memory layer with a real database
-looks like.
+The app runs against either of two interchangeable backends behind the
+same `ClinicApi` interface, selected at build/run time — no screen code
+differs between them:
+
+- **Demo backend** (default) — the **Phase 1 prototype** called for in
+  the spec (section 19, "Build clickable/mock UI before backend
+  implementation"): full business logic, in-memory only, seeded fake
+  data, no real login. This is what the [live preview](#live-preview)
+  runs.
+- **Supabase backend** (Phase 2) — a real Postgres database, Row-Level
+  Security, Realtime sync across devices, and real staff email/password
+  login. See **[`supabase/README.md`](supabase/README.md)** to set one
+  up (~10 minutes, free tier) and
+  **[`docs/PHASE_2_BACKEND_SCOPE.md`](docs/PHASE_2_BACKEND_SCOPE.md)**
+  for the design.
 
 ## Live preview
 
@@ -29,13 +37,22 @@ seeded fake data and simulated login — see Assumptions below.
 
 ```bash
 flutter pub get
-flutter run -d chrome      # or any connected device
+flutter run -d chrome      # or any connected device — demo backend
 flutter test                # unit + widget tests
 ```
 
 Sign in as one of the three seeded demo accounts (Secretary, Doctor,
-Admin) on the login screen — no password is required in this prototype
-(see Assumptions below).
+Admin) on the login screen — no password is required in this mode (see
+Assumptions below). To run against a real Supabase backend instead:
+
+```bash
+flutter run \
+  --dart-define=BACKEND=supabase \
+  --dart-define=SUPABASE_URL=https://xxxx.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=eyJ...
+```
+
+See `supabase/README.md` for the one-time project setup this needs.
 
 ## What's implemented
 
@@ -73,21 +90,35 @@ lib/
                QueueEvent, AppUser — kept as separate entities per the
                spec's explicit separation rules (patient vs. visit vs.
                queue vs. vitals).
-  services/    ClinicRepository — the business-logic/service layer
-               (Patient/Visit/Queue "services" from spec section 22,
-               combined into one class for MVP scope). Owns validation,
-               role authorization, the queue algorithm, and audit
-               logging, independent of any screen.
-  providers/   AuthProvider (session) + ClinicRepository exposed via
-               `provider` for reactive UI updates.
-  screens/     One folder per actor (secretary/, doctor/, public/, auth/).
+  services/
+    clinic_api.dart          Abstract ClinicApi contract (the write
+                              operations) + ClinicDataCache mixin (every
+                              read/derived getter — queue ordering,
+                              status filters, joins — implemented once,
+                              shared by both backends below, so they can
+                              never disagree about what "next patient"
+                              means).
+    clinic_repository.dart   ClinicApi impl #1: in-memory, Phase 1 demo.
+    supabase_clinic_api.dart ClinicApi impl #2: real Postgres/Supabase,
+                              Phase 2 — reads from Realtime-synced cache,
+                              writes via RPC calls to
+                              supabase/migrations/0003_functions.sql.
+  providers/   AuthSession (shared interface) with two implementations:
+               AuthProvider (demo, pick a seeded account) and
+               SupabaseAuthProvider (real email/password).
+  screens/     One folder per actor (secretary/, doctor/, public/, auth/)
+               — depend only on ClinicApi/AuthSession, never on which
+               concrete backend is active.
   widgets/     Shared UI (status badges, app bar, avatars, stat cards).
+supabase/
+  migrations/  SQL: schema, Row-Level Security, RPC functions.
+  README.md    Setup instructions for a real Supabase project.
 ```
 
-`ClinicRepository`'s method boundaries mirror what a real backend would
-expose (see spec section 15's endpoint list) so the in-memory
-implementation can be swapped for real HTTP calls later without
-rewriting screens.
+Every `ClinicApi` write method returns a `Future` — even the in-memory
+demo backend's, which resolves immediately — so screens `await` one
+consistent contract regardless of which backend is wired up, rather
+than the interface pretending a real network call is synchronous.
 
 ## Branding
 
@@ -128,13 +159,14 @@ prototype makes an explicit, documented assumption rather than a silent
 one. Search the codebase for `ASSUMPTION` / `CONFIRMATION REQUIRED` to
 find every instance; the main ones are:
 
-- **Authentication is simulated.** Sign-in picks a seeded account with
-  no password. Spec section 14/15 requires real authenticated access
-  (hashed passwords, session tokens, server-side authorization) before
-  any production or pilot deployment.
-- **No real backend/database.** All data lives in memory for the app
-  session (spec 19 Phase 3 prototype scope). Nothing persists across
-  restarts.
+- **The demo backend's authentication is simulated.** Sign-in picks a
+  seeded account with no password, and data lives only in memory for
+  the app session — nothing persists across restarts. The Supabase
+  backend (opt-in via `--dart-define=BACKEND=supabase`) has real
+  email/password auth and a persistent database instead; see
+  `docs/PHASE_2_BACKEND_SCOPE.md` §6 and §8 for what still needs
+  clinic/legal confirmation (NPC registration threshold, backup
+  cadence) before either is used with real patient data.
 - **Priority categories** (Doctor Priority / Special Assistance /
   Follow-up-Newborn / Normal) are the spec's own examples, not a
   clinic-confirmed policy (spec 7.5, Step 8).
@@ -146,13 +178,20 @@ find every instance; the main ones are:
   oxygen saturation, matching the spec's own example set (spec 9.4) —
   the clinic must confirm which measurements it actually takes.
 
-None of this authorization/priority logic lives only in the UI: the
-service layer (`ClinicRepository`) enforces role checks and valid state
+None of this authorization/priority logic lives only in the UI. For the
+demo backend, `ClinicRepository` enforces role checks and valid state
 transitions itself and throws typed exceptions
 (`AuthorizationException`, `InvalidQueueTransitionException`,
-`DuplicateOperationException`) regardless of what a screen shows —
-covering spec Scenario 9 (secretary must not be able to perform a
-doctor-only override even if a button were somehow shown).
+`DuplicateOperationException`) regardless of what a screen shows. For
+the Supabase backend, the same checks are enforced twice independently
+— once inside each Postgres RPC function
+(`supabase/migrations/0003_functions.sql`), and again by Row-Level
+Security policies (`0002_row_level_security.sql`) that would block a
+disallowed write even if a function had a bug — with database errors
+translated back into the same typed exceptions so screens' catch
+blocks don't need to know which backend is active. Both cover spec
+Scenario 9 (secretary must not be able to perform a doctor-only
+override even if a button were somehow shown).
 
 ## Non-goals (per spec section 21)
 

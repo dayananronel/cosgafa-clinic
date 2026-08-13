@@ -16,7 +16,7 @@ ClinicRepository _repoWithCategories() {
   return repo;
 }
 
-Patient _register(ClinicRepository repo, String first) {
+Future<Patient> _register(ClinicRepository repo, String first) {
   return repo.registerPatient(
     firstName: first,
     lastName: 'Test',
@@ -31,56 +31,56 @@ Patient _register(ClinicRepository repo, String first) {
 
 void main() {
   group('Scenario 1 — New patient full flow', () {
-    test('walks check-in through consultation completion', () {
+    test('walks check-in through consultation completion', () async {
       final repo = _repoWithCategories();
-      final patient = _register(repo, 'Ana');
-      final result = repo.checkIn(newlyRegisteredPatient: patient, reasonForVisit: 'Fever', actor: 'secretary');
+      final patient = await _register(repo, 'Ana');
+      final result = await repo.checkIn(newlyRegisteredPatient: patient, reasonForVisit: 'Fever', actor: 'secretary');
 
-      var entry = repo.startIntake(result.queueEntry.id, actor: 'secretary');
+      var entry = await repo.startIntake(result.queueEntry.id, actor: 'secretary');
       expect(entry.status, QueueStatus.inIntake);
 
-      entry = repo.recordVitals(entry.id, weightKg: 10, temperatureC: 37.5, actor: 'secretary');
+      entry = await repo.recordVitals(entry.id, weightKg: 10, temperatureC: 37.5, actor: 'secretary');
       expect(entry.status, QueueStatus.vitalsComplete);
 
-      entry = repo.completeIntake(entry.id, priorityCategoryId: 'normal', actor: 'secretary');
+      entry = await repo.completeIntake(entry.id, priorityCategoryId: 'normal', actor: 'secretary');
       expect(entry.status, QueueStatus.waitingForDoctor);
 
-      entry = repo.callPatient(entry.id, actor: 'doctor');
+      entry = await repo.callPatient(entry.id, actor: 'doctor');
       expect(entry.status, QueueStatus.called);
 
-      entry = repo.startConsultation(entry.id, actor: 'doctor');
+      entry = await repo.startConsultation(entry.id, actor: 'doctor');
       expect(entry.status, QueueStatus.inConsultation);
 
-      entry = repo.completeConsultation(entry.id, actor: 'doctor');
+      entry = await repo.completeConsultation(entry.id, actor: 'doctor');
       expect(entry.status, QueueStatus.completed);
       expect(repo.getVisit(result.visit.id)!.status, VisitStatus.completed);
     });
   });
 
   group('Scenario 2 — Existing patient, no duplicate record', () {
-    test('reuses the existing patient id across visits', () {
+    test('reuses the existing patient id across visits', () async {
       final repo = _repoWithCategories();
-      final patient = _register(repo, 'Renzo');
+      final patient = await _register(repo, 'Renzo');
       expect(repo.patients.length, 1);
 
-      repo.checkIn(existingPatient: patient, reasonForVisit: 'Follow-up', actor: 'secretary');
+      await repo.checkIn(existingPatient: patient, reasonForVisit: 'Follow-up', actor: 'secretary');
       expect(repo.patients.length, 1);
       expect(repo.visitsForPatient(patient.id).length, 1);
     });
   });
 
   group('Scenario 3 & 4 — Arrival order', () {
-    test('same-priority patients are ordered strictly by check-in time', () {
+    test('same-priority patients are ordered strictly by check-in time', () async {
       final repo = _repoWithCategories();
-      final a = _register(repo, 'A');
-      final b = _register(repo, 'B');
-      final c = _register(repo, 'C');
+      final a = await _register(repo, 'A');
+      final b = await _register(repo, 'B');
+      final c = await _register(repo, 'C');
 
       for (final p in [a, b, c]) {
-        final r = repo.checkIn(existingPatient: p, reasonForVisit: 'Checkup', actor: 'secretary');
-        repo.startIntake(r.queueEntry.id, actor: 'secretary');
-        repo.recordVitals(r.queueEntry.id, actor: 'secretary');
-        repo.completeIntake(r.queueEntry.id, priorityCategoryId: 'normal', actor: 'secretary');
+        final r = await repo.checkIn(existingPatient: p, reasonForVisit: 'Checkup', actor: 'secretary');
+        await repo.startIntake(r.queueEntry.id, actor: 'secretary');
+        await repo.recordVitals(r.queueEntry.id, actor: 'secretary');
+        await repo.completeIntake(r.queueEntry.id, priorityCategoryId: 'normal', actor: 'secretary');
       }
 
       final order = repo.doctorQueueSorted.map((e) => repo.patientForQueueEntry(e).firstName).toList();
@@ -89,21 +89,21 @@ void main() {
   });
 
   group('Scenario 5 — Doctor override', () {
-    test('prioritized patient moves to the front and the change is audited', () {
+    test('prioritized patient moves to the front and the change is audited', () async {
       final repo = _repoWithCategories();
-      final a = _register(repo, 'A');
-      final b = _register(repo, 'B');
-      final c = _register(repo, 'C');
+      final a = await _register(repo, 'A');
+      final b = await _register(repo, 'B');
+      final c = await _register(repo, 'C');
       final entries = <QueueEntry>[];
       for (final p in [a, b, c]) {
-        final r = repo.checkIn(existingPatient: p, reasonForVisit: 'Checkup', actor: 'secretary');
-        repo.startIntake(r.queueEntry.id, actor: 'secretary');
-        repo.recordVitals(r.queueEntry.id, actor: 'secretary');
-        entries.add(repo.completeIntake(r.queueEntry.id, priorityCategoryId: 'normal', actor: 'secretary'));
+        final r = await repo.checkIn(existingPatient: p, reasonForVisit: 'Checkup', actor: 'secretary');
+        await repo.startIntake(r.queueEntry.id, actor: 'secretary');
+        await repo.recordVitals(r.queueEntry.id, actor: 'secretary');
+        entries.add(await repo.completeIntake(r.queueEntry.id, priorityCategoryId: 'normal', actor: 'secretary'));
       }
 
       final doctorUser = AppUser(id: 'd1', name: 'Dr. Test', username: 'doctor', role: UserRole.doctor);
-      repo.doctorOverride(entries[2].id, reason: 'Clinical concern', actor: doctorUser);
+      await repo.doctorOverride(entries[2].id, reason: 'Clinical concern', actor: doctorUser);
 
       final order = repo.doctorQueueSorted.map((e) => repo.patientForQueueEntry(e).firstName).toList();
       expect(order.first, 'C');
@@ -118,13 +118,13 @@ void main() {
   });
 
   group('Scenario 6 — Secretary uncertain', () {
-    test('flags NEEDS_DOCTOR_DECISION and the doctor resolves it', () {
+    test('flags NEEDS_DOCTOR_DECISION and the doctor resolves it', () async {
       final repo = _repoWithCategories();
-      final patient = _register(repo, 'Ella');
-      final r = repo.checkIn(existingPatient: patient, reasonForVisit: 'Unclear', actor: 'secretary');
-      repo.startIntake(r.queueEntry.id, actor: 'secretary');
-      repo.recordVitals(r.queueEntry.id, actor: 'secretary');
-      final entry = repo.completeIntake(
+      final patient = await _register(repo, 'Ella');
+      final r = await repo.checkIn(existingPatient: patient, reasonForVisit: 'Unclear', actor: 'secretary');
+      await repo.startIntake(r.queueEntry.id, actor: 'secretary');
+      await repo.recordVitals(r.queueEntry.id, actor: 'secretary');
+      final entry = await repo.completeIntake(
         r.queueEntry.id,
         priorityCategoryId: 'normal',
         needsDoctorDecision: true,
@@ -134,74 +134,74 @@ void main() {
       expect(repo.needsDecisionQueue, contains(entry));
 
       final doctorUser = AppUser(id: 'd1', name: 'Dr. Test', username: 'doctor', role: UserRole.doctor);
-      final resolved = repo.doctorKeepNormalPriority(entry.id, actor: doctorUser);
+      final resolved = await repo.doctorKeepNormalPriority(entry.id, actor: doctorUser);
       expect(resolved.status, QueueStatus.waitingForDoctor);
     });
   });
 
   group('Scenario 7 — Skip and requeue', () {
-    test('a called patient who does not respond can be requeued', () {
+    test('a called patient who does not respond can be requeued', () async {
       final repo = _repoWithCategories();
-      final patient = _register(repo, 'Miguel');
-      final r = repo.checkIn(existingPatient: patient, reasonForVisit: 'Checkup', actor: 'secretary');
-      repo.startIntake(r.queueEntry.id, actor: 'secretary');
-      repo.recordVitals(r.queueEntry.id, actor: 'secretary');
-      var entry = repo.completeIntake(r.queueEntry.id, priorityCategoryId: 'normal', actor: 'secretary');
-      entry = repo.callPatient(entry.id, actor: 'doctor');
-      entry = repo.skip(entry.id, actor: 'doctor');
+      final patient = await _register(repo, 'Miguel');
+      final r = await repo.checkIn(existingPatient: patient, reasonForVisit: 'Checkup', actor: 'secretary');
+      await repo.startIntake(r.queueEntry.id, actor: 'secretary');
+      await repo.recordVitals(r.queueEntry.id, actor: 'secretary');
+      var entry = await repo.completeIntake(r.queueEntry.id, priorityCategoryId: 'normal', actor: 'secretary');
+      entry = await repo.callPatient(entry.id, actor: 'doctor');
+      entry = await repo.skip(entry.id, actor: 'doctor');
       expect(entry.status, QueueStatus.skipped);
 
-      entry = repo.requeue(entry.id, actor: 'secretary');
+      entry = await repo.requeue(entry.id, actor: 'secretary');
       expect(entry.status, QueueStatus.waitingForDoctor);
     });
   });
 
   group('Scenario 9 — Unauthorized priority change', () {
-    test('secretary cannot issue a doctor override', () {
+    test('secretary cannot issue a doctor override', () async {
       final repo = _repoWithCategories();
-      final patient = _register(repo, 'Sofia');
-      final r = repo.checkIn(existingPatient: patient, reasonForVisit: 'Checkup', actor: 'secretary');
-      repo.startIntake(r.queueEntry.id, actor: 'secretary');
-      repo.recordVitals(r.queueEntry.id, actor: 'secretary');
-      final entry = repo.completeIntake(r.queueEntry.id, priorityCategoryId: 'normal', actor: 'secretary');
+      final patient = await _register(repo, 'Sofia');
+      final r = await repo.checkIn(existingPatient: patient, reasonForVisit: 'Checkup', actor: 'secretary');
+      await repo.startIntake(r.queueEntry.id, actor: 'secretary');
+      await repo.recordVitals(r.queueEntry.id, actor: 'secretary');
+      final entry = await repo.completeIntake(r.queueEntry.id, priorityCategoryId: 'normal', actor: 'secretary');
 
       final secretaryUser = AppUser(id: 's1', name: 'Secretary Test', username: 'secretary', role: UserRole.secretary);
-      expect(
-        () => repo.doctorOverride(entry.id, reason: 'Doctor decision', actor: secretaryUser),
+      await expectLater(
+        repo.doctorOverride(entry.id, reason: 'Doctor decision', actor: secretaryUser),
         throwsA(isA<AuthorizationException>()),
       );
     });
 
-    test('secretary cannot assign the doctor-priority category during intake', () {
+    test('secretary cannot assign the doctor-priority category during intake', () async {
       final repo = _repoWithCategories();
-      final patient = _register(repo, 'Miguel');
-      final r = repo.checkIn(existingPatient: patient, reasonForVisit: 'Checkup', actor: 'secretary');
-      repo.startIntake(r.queueEntry.id, actor: 'secretary');
-      repo.recordVitals(r.queueEntry.id, actor: 'secretary');
-      expect(
-        () => repo.completeIntake(r.queueEntry.id, priorityCategoryId: 'doctor', actor: 'secretary'),
+      final patient = await _register(repo, 'Miguel');
+      final r = await repo.checkIn(existingPatient: patient, reasonForVisit: 'Checkup', actor: 'secretary');
+      await repo.startIntake(r.queueEntry.id, actor: 'secretary');
+      await repo.recordVitals(r.queueEntry.id, actor: 'secretary');
+      await expectLater(
+        repo.completeIntake(r.queueEntry.id, priorityCategoryId: 'doctor', actor: 'secretary'),
         throwsA(isA<AuthorizationException>()),
       );
     });
   });
 
   group('Duplicate prevention', () {
-    test('checking in the same patient twice in one day throws', () {
+    test('checking in the same patient twice in one day throws', () async {
       final repo = _repoWithCategories();
-      final patient = _register(repo, 'Ana');
-      repo.checkIn(existingPatient: patient, reasonForVisit: 'Fever', actor: 'secretary');
-      expect(
-        () => repo.checkIn(existingPatient: patient, reasonForVisit: 'Fever again', actor: 'secretary'),
+      final patient = await _register(repo, 'Ana');
+      await repo.checkIn(existingPatient: patient, reasonForVisit: 'Fever', actor: 'secretary');
+      await expectLater(
+        repo.checkIn(existingPatient: patient, reasonForVisit: 'Fever again', actor: 'secretary'),
         throwsA(isA<DuplicateOperationException>()),
       );
     });
   });
 
   group('Public display safety', () {
-    test('queue entries expose only numbers, never patient identity', () {
+    test('queue entries expose only numbers, never patient identity', () async {
       final repo = _repoWithCategories();
-      final patient = _register(repo, 'Ana');
-      final r = repo.checkIn(existingPatient: patient, reasonForVisit: 'Fever', actor: 'secretary');
+      final patient = await _register(repo, 'Ana');
+      final r = await repo.checkIn(existingPatient: patient, reasonForVisit: 'Fever', actor: 'secretary');
       expect(r.queueEntry.displayNumber, matches(RegExp(r'^#\d{3,}$')));
     });
   });

@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/clinic_repository.dart';
+import '../../providers/auth_session.dart';
+import '../../services/clinic_api.dart';
 import '../../utils/formatters.dart';
 import '../../utils/theme.dart';
 import '../../widgets/clinic_app_bar.dart';
@@ -46,7 +46,7 @@ class _IntakeScreenState extends State<IntakeScreen> {
     super.dispose();
   }
 
-  void _ensureStarted(ClinicRepository repo, QueueEntry entry, String actor) {
+  void _ensureStarted(ClinicApi repo, QueueEntry entry, String actor) {
     if (entry.status == QueueStatus.waitingForIntake) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         repo.startIntake(entry.id, actor: actor);
@@ -59,7 +59,7 @@ class _IntakeScreenState extends State<IntakeScreen> {
     return double.tryParse(text.trim());
   }
 
-  void _complete(ClinicRepository repo, QueueEntry entry, String actor) {
+  Future<void> _complete(ClinicApi repo, QueueEntry entry, String actor) async {
     if (_reasonController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a reason for visit.')),
@@ -73,7 +73,10 @@ class _IntakeScreenState extends State<IntakeScreen> {
       return;
     }
 
-    repo.recordVitals(
+    // Sequential, not parallel: completeIntake requires vitals to have
+    // already landed (status VITALS_COMPLETE), which only recordVitals
+    // sets — matters once these are real network calls, not in-memory.
+    await repo.recordVitals(
       entry.id,
       weightKg: _parse(_weightController.text),
       temperatureC: _parse(_temperatureController.text),
@@ -81,20 +84,21 @@ class _IntakeScreenState extends State<IntakeScreen> {
       oxygenSaturation: _parse(_oxygenController.text),
       actor: actor,
     );
-    repo.completeIntake(
+    await repo.completeIntake(
       entry.id,
       priorityCategoryId: _selectedCategoryId ?? repo.normalCategory.id,
       needsDoctorDecision: _needsDoctorDecision,
       reasonForVisitOverride: _reasonController.text,
       actor: actor,
     );
+    if (!mounted) return;
     Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final repo = context.watch<ClinicRepository>();
-    final actor = context.read<AuthProvider>().currentUser?.name ?? 'Secretary';
+    final repo = context.watch<ClinicApi>();
+    final actor = context.read<AuthSession>().currentUser?.name ?? 'Secretary';
     final entry = repo.todayQueueEntries.firstWhere((e) => e.id == widget.queueEntryId);
     final patient = repo.patientForQueueEntry(entry);
     final visit = repo.visitForQueueEntry(entry);

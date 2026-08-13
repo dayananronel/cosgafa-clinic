@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/clinic_repository.dart';
+import '../../providers/auth_session.dart';
+import '../../services/clinic_api.dart';
 import '../../services/exceptions.dart';
 
 const _overrideReasons = ['Doctor decision', 'Clinical concern', 'Other'];
@@ -11,7 +11,7 @@ const _overrideReasons = ['Doctor decision', 'Clinical concern', 'Other'];
 /// Spec section 11: a doctor override is never a single silent button.
 /// The doctor must pick a reason (with a required explanation for
 /// "Other") and explicitly confirm that this changes the queue order.
-/// Every override is logged via [ClinicRepository.doctorOverride].
+/// Every override is logged via [ClinicApi.doctorOverride].
 Future<void> showPriorityOverrideDialog(
   BuildContext context, {
   required QueueEntry entry,
@@ -50,7 +50,7 @@ class _PriorityOverrideDialogState extends State<_PriorityOverrideDialog> {
     super.dispose();
   }
 
-  void _confirm() {
+  Future<void> _confirm() async {
     if (_reason == null) {
       setState(() => _error = 'Please select a reason.');
       return;
@@ -59,18 +59,20 @@ class _PriorityOverrideDialogState extends State<_PriorityOverrideDialog> {
       setState(() => _error = 'Please explain the reason.');
       return;
     }
-    final repo = context.read<ClinicRepository>();
-    final actor = context.read<AuthProvider>().currentUser;
+    final repo = context.read<ClinicApi>();
+    final actor = context.read<AuthSession>().currentUser;
     if (actor == null) return;
     try {
-      repo.doctorOverride(
+      await repo.doctorOverride(
         widget.entry.id,
         reason: _reason!,
         otherExplanation: _otherController.text,
         actor: actor,
       );
+      if (!mounted) return;
       Navigator.of(context).pop();
     } on AuthorizationException catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.message);
     }
   }

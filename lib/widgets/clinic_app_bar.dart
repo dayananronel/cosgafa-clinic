@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_session.dart';
 import '../screens/audit_log_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/public/public_display_screen.dart';
@@ -18,7 +18,7 @@ class ClinicAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+    final auth = context.watch<AuthSession>();
     final user = auth.currentUser;
     // Below this width the user's name/role label is dropped and the icon
     // actions get tighter spacing so the bar never overflows on a phone.
@@ -89,7 +89,7 @@ class ClinicAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               onSelected: (value) {
                 if (value == 'signout') {
-                  context.read<AuthProvider>().signOut();
+                  context.read<AuthSession>().signOut();
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
                     (route) => false,

@@ -4,9 +4,8 @@ import 'package:provider/provider.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/clinic_logo.dart';
-import '../doctor/doctor_dashboard_screen.dart';
 import '../public/public_display_screen.dart';
-import '../secretary/secretary_dashboard_screen.dart';
+import 'home_for_role.dart';
 
 /// ASSUMPTION: sign-in here simply picks a seeded staff account, standing
 /// in for real authenticated access (spec section 14/15) until a backend
@@ -65,7 +64,7 @@ class LoginScreen extends StatelessWidget {
                         onTap: () {
                           context.read<AuthProvider>().signIn(u);
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => _homeFor(u.role)),
+                            MaterialPageRoute(builder: (_) => homeForRole(u.role)),
                           );
                         },
                       ),
@@ -89,16 +88,6 @@ class LoginScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  static Widget _homeFor(UserRole role) {
-    switch (role) {
-      case UserRole.secretary:
-      case UserRole.admin:
-        return const SecretaryDashboardScreen();
-      case UserRole.doctor:
-        return const DoctorDashboardScreen();
-    }
   }
 }
 

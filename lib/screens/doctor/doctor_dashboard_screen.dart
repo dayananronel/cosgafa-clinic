@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/clinic_repository.dart';
+import '../../providers/auth_session.dart';
+import '../../services/clinic_api.dart';
 import '../../services/exceptions.dart';
 import '../../utils/formatters.dart';
 import '../../utils/theme.dart';
@@ -21,8 +21,8 @@ class DoctorDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repo = context.watch<ClinicRepository>();
-    final auth = context.watch<AuthProvider>();
+    final repo = context.watch<ClinicApi>();
+    final auth = context.watch<AuthSession>();
     final actor = auth.currentUser?.name ?? 'Doctor';
     final current = repo.currentlyServingEntry;
     final queue = repo.doctorQueueSorted;
@@ -42,10 +42,11 @@ class DoctorDashboardScreen extends StatelessWidget {
                   action: queue.isEmpty
                       ? null
                       : FilledButton.icon(
-                          onPressed: () {
+                          onPressed: () async {
                             try {
-                              repo.callNext(actor: actor);
+                              await repo.callNext(actor: actor);
                             } on InvalidQueueTransitionException catch (e) {
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
                             }
                           },
@@ -128,7 +129,7 @@ class _EmptyCard extends StatelessWidget {
 class _CurrentPatientCard extends StatelessWidget {
   const _CurrentPatientCard({required this.entry, required this.repo, required this.actor});
   final QueueEntry entry;
-  final ClinicRepository repo;
+  final ClinicApi repo;
   final String actor;
 
   @override
@@ -237,14 +238,14 @@ class _DetailRow extends StatelessWidget {
 class _NeedsDecisionRow extends StatelessWidget {
   const _NeedsDecisionRow({required this.entry, required this.repo, required this.actor});
   final QueueEntry entry;
-  final ClinicRepository repo;
+  final ClinicApi repo;
   final String actor;
 
   @override
   Widget build(BuildContext context) {
     final patient = repo.patientForQueueEntry(entry);
     final visit = repo.visitForQueueEntry(entry);
-    final auth = context.read<AuthProvider>();
+    final auth = context.read<AuthSession>();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -274,12 +275,13 @@ class _NeedsDecisionRow extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       final user = auth.currentUser;
                       if (user == null) return;
                       try {
-                        repo.doctorKeepNormalPriority(entry.id, actor: user);
+                        await repo.doctorKeepNormalPriority(entry.id, actor: user);
                       } on AuthorizationException catch (e) {
+                        if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
                       }
                     },
@@ -318,7 +320,7 @@ class _NextPatientRow extends StatelessWidget {
 
   final QueueEntry entry;
   final int position;
-  final ClinicRepository repo;
+  final ClinicApi repo;
   final String actor;
   final bool canCall;
 
@@ -419,7 +421,7 @@ class _NextPatientRow extends StatelessWidget {
 class _SkippedRow extends StatelessWidget {
   const _SkippedRow({required this.entry, required this.repo, required this.actor});
   final QueueEntry entry;
-  final ClinicRepository repo;
+  final ClinicApi repo;
   final String actor;
 
   @override

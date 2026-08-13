@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/clinic_repository.dart';
+import '../../providers/auth_session.dart';
+import '../../services/clinic_api.dart';
 import '../../services/exceptions.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/clinic_app_bar.dart';
@@ -60,27 +60,29 @@ class _CheckInScreenState extends State<CheckInScreen> {
     });
   }
 
-  void _submitCheckIn() {
-    final repo = context.read<ClinicRepository>();
-    final actor = context.read<AuthProvider>().currentUser?.name ?? 'Secretary';
+  Future<void> _submitCheckIn() async {
+    final repo = context.read<ClinicApi>();
+    final actor = context.read<AuthSession>().currentUser?.name ?? 'Secretary';
     final reason = _reasonController.text.trim();
     if (reason.isEmpty) {
       setState(() => _error = 'Please enter or select a reason for visit.');
       return;
     }
     try {
-      final result = repo.checkIn(
+      final result = await repo.checkIn(
         existingPatient: _isNewlyRegistered ? null : _confirmedPatient,
         newlyRegisteredPatient: _isNewlyRegistered ? _confirmedPatient : null,
         reasonForVisit: reason,
         actor: actor,
       );
+      if (!mounted) return;
       setState(() {
         _resultEntry = result.queueEntry;
         _stage = _Stage.done;
         _error = null;
       });
     } on DuplicateOperationException catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.message);
     }
   }
@@ -235,7 +237,7 @@ class _SearchExistingStep extends StatefulWidget {
 class _SearchExistingStepState extends State<_SearchExistingStep> {
   @override
   Widget build(BuildContext context) {
-    final repo = context.watch<ClinicRepository>();
+    final repo = context.watch<ClinicApi>();
     final query = widget.controller.text;
     final results = repo.searchPatients(query);
     return Column(
@@ -422,7 +424,7 @@ class _RegisterNewStepState extends State<_RegisterNewStep> {
       setState(() => _duplicates = const []);
       return;
     }
-    final repo = context.read<ClinicRepository>();
+    final repo = context.read<ClinicApi>();
     setState(() {
       _duplicates = repo.findPotentialDuplicates(
         firstName: _first.text.trim(),
@@ -432,7 +434,7 @@ class _RegisterNewStepState extends State<_RegisterNewStep> {
     });
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _birthdate == null) {
       if (_birthdate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -441,9 +443,9 @@ class _RegisterNewStepState extends State<_RegisterNewStep> {
       }
       return;
     }
-    final repo = context.read<ClinicRepository>();
-    final actor = context.read<AuthProvider>().currentUser?.name ?? 'Secretary';
-    final patient = repo.registerPatient(
+    final repo = context.read<ClinicApi>();
+    final actor = context.read<AuthSession>().currentUser?.name ?? 'Secretary';
+    final patient = await repo.registerPatient(
       firstName: _first.text.trim(),
       middleName: _middle.text.trim(),
       lastName: _last.text.trim(),
@@ -454,6 +456,7 @@ class _RegisterNewStepState extends State<_RegisterNewStep> {
       guardianContact: _guardianContact.text.trim(),
       actor: actor,
     );
+    if (!mounted) return;
     widget.onRegistered(patient);
   }
 

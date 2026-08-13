@@ -1,15 +1,21 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cosgafa_clinic/main.dart';
+import 'package:cosgafa_clinic/providers/auth_provider.dart';
+import 'package:cosgafa_clinic/screens/auth/login_screen.dart';
 import 'package:cosgafa_clinic/services/clinic_repository.dart';
 import 'package:cosgafa_clinic/services/seed_data.dart';
 
 void main() {
   testWidgets('App boots to the login screen with seeded staff accounts', (tester) async {
     final repository = ClinicRepository();
-    seedDemoData(repository);
+    await seedDemoData(repository);
 
-    await tester.pumpWidget(CosgafaClinicApp(repository: repository));
+    await tester.pumpWidget(CosgafaClinicApp(
+      clinicApi: repository,
+      authSession: AuthProvider(repository),
+      home: const LoginScreen(),
+    ));
     await tester.pumpAndSettle();
 
     expect(find.text('Dr. Michelle Cosgafa\nPaediatrics Clinic'), findsOneWidget);
@@ -20,9 +26,13 @@ void main() {
 
   testWidgets('Secretary can sign in and reach the dashboard', (tester) async {
     final repository = ClinicRepository();
-    seedDemoData(repository);
+    await seedDemoData(repository);
 
-    await tester.pumpWidget(CosgafaClinicApp(repository: repository));
+    await tester.pumpWidget(CosgafaClinicApp(
+      clinicApi: repository,
+      authSession: AuthProvider(repository),
+      home: const LoginScreen(),
+    ));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Grace Villanueva'));

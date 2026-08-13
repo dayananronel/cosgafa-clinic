@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
-import '../services/clinic_repository.dart';
+import '../services/clinic_api.dart';
 import '../utils/formatters.dart';
 import '../widgets/clinic_app_bar.dart';
 
@@ -14,7 +14,7 @@ class AuditLogScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repo = context.watch<ClinicRepository>();
+    final repo = context.watch<ClinicApi>();
     final events = repo.todayEvents;
 
     return Scaffold(
