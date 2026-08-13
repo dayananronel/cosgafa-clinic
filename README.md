@@ -1,4 +1,4 @@
-# Cosgafa Pediatric Clinic — Reception & Queue Management
+# Dr. Michelle Cosgafa Paediatrics Clinic — Reception & Queue Management
 
 A Flutter implementation of the MVP described in
 `pediatric_clinic_reception_queue_management_spec.md`: a reception and
@@ -10,7 +10,20 @@ This is the **Phase 1 prototype** called for in the spec (section 19,
 "Build clickable/mock UI before backend implementation") — a real,
 runnable Flutter app with the full business logic implemented, but
 backed by an in-memory repository instead of a networked API and
-database.
+database. **[`docs/PHASE_2_BACKEND_SCOPE.md`](docs/PHASE_2_BACKEND_SCOPE.md)**
+scopes out what replacing that in-memory layer with a real database
+looks like.
+
+## Live preview
+
+Every push to this branch builds and deploys automatically via GitHub
+Actions (`.github/workflows/ci-deploy.yml`) to GitHub Pages:
+
+**https://dayananronel.github.io/cosgafa-clinic/**
+
+The workflow runs `flutter analyze` + `flutter test` first, so a
+broken build never reaches the preview URL. This is a demo build with
+seeded fake data and simulated login — see Assumptions below.
 
 ## Getting started
 
@@ -75,6 +88,37 @@ lib/
 expose (see spec section 15's endpoint list) so the in-memory
 implementation can be swapped for real HTTP calls later without
 rewriting screens.
+
+## Branding
+
+The app icon and in-app logo (`lib/widgets/clinic_logo.dart`,
+`assets/branding/`) are a vector-drawn recreation of the clinic's mark
+— a coral circle with a pale heart-and-cross — generated at
+`android/app/src/main/res/mipmap-*/ic_launcher.png` and
+`web/icons/Icon-*.png` for every platform icon size, including
+maskable variants for Android's adaptive icon safe zone.
+
+## Responsive design
+
+Every screen is built to work from a phone (~360px wide) up through
+tablet and desktop widths, verified by rendering each screen at a
+390×844 viewport:
+
+- `ClinicAppBar` drops the signed-in user's name/role label below
+  600px width so the title, audit-log, and public-display actions
+  never overflow.
+- List rows that combine a queue position, avatar, identity, and a
+  trailing action button (waiting queue, doctor's next-patient list)
+  switch from a single row to a stacked layout below ~380px, so long
+  patient names get ellipsis instead of being crushed by the action
+  button.
+- The Public Queue Display's "now serving" number scales with
+  available width (`FittedBox` + width-proportional font sizing)
+  instead of a fixed 120px size, so it fits a phone as well as a
+  waiting-room TV.
+- Dashboards use a responsive grid (1/2/3 columns based on width) and
+  every form/detail screen is wrapped in a scrollable, width-constrained
+  container.
 
 ## Assumptions requiring clinic confirmation
 

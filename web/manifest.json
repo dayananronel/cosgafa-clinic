@@ -1,11 +1,11 @@
 {
-    "name": "cosgafa_clinic",
-    "short_name": "cosgafa_clinic",
+    "name": "Dr. Michelle Cosgafa Paediatrics Clinic",
+    "short_name": "Cosgafa Clinic",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#ACC7F6",
+    "theme_color": "#0E7C86",
+    "description": "Pediatric clinic reception and queue management.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

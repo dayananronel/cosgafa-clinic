@@ -22,72 +22,90 @@ class PublicDisplayScreen extends StatelessWidget {
         child: Stack(
           children: [
             Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'NOW SERVING',
-                      style: TextStyle(
-                        color: Color(0xFF8FA3C4),
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 6,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      current != null ? current.displayNumber : '—',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 120,
-                        fontWeight: FontWeight.w900,
-                        height: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (current != null)
-                      const Text(
-                        'Please proceed to the doctor’s room',
-                        style: TextStyle(color: Color(0xFFB8C4DA), fontSize: 18),
-                      )
-                    else
-                      const Text(
-                        'Please wait for your number to be called',
-                        style: TextStyle(color: Color(0xFFB8C4DA), fontSize: 18),
-                      ),
-                    const SizedBox(height: 56),
-                    Container(height: 1, color: Colors.white24),
-                    const SizedBox(height: 40),
-                    const Text(
-                      'NEXT',
-                      style: TextStyle(
-                        color: Color(0xFF8FA3C4),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 6,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    next.isEmpty
-                        ? const Text('—', style: TextStyle(color: Colors.white54, fontSize: 32))
-                        : Wrap(
-                            spacing: 24,
-                            runSpacing: 16,
-                            alignment: WrapAlignment.center,
-                            children: next
-                                .map((e) => Text(
-                                      e.displayNumber,
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 40,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ))
-                                .toList(),
-                          ),
-                  ],
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Scales the whole display by available width so it
+                      // reads well on a phone, a tablet, or a waiting-room
+                      // TV without ever overflowing horizontally.
+                      final w = constraints.maxWidth;
+                      final labelSize = (w * 0.052).clamp(14.0, 22.0);
+                      final numberSize = (w * 0.30).clamp(56.0, 120.0);
+                      final nextLabelSize = (w * 0.045).clamp(12.0, 18.0);
+                      final nextNumberSize = (w * 0.11).clamp(28.0, 40.0);
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'NOW SERVING',
+                              style: TextStyle(
+                                color: const Color(0xFF8FA3C4),
+                                fontSize: labelSize,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 6,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            FittedBox(
+                              child: Text(
+                                current != null ? current.displayNumber : '—',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: numberSize,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              current != null
+                                  ? 'Please proceed to the doctor’s room'
+                                  : 'Please wait for your number to be called',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: const Color(0xFFB8C4DA), fontSize: nextLabelSize + 2),
+                            ),
+                            const SizedBox(height: 56),
+                            Container(height: 1, color: Colors.white24),
+                            const SizedBox(height: 40),
+                            Text(
+                              'NEXT',
+                              style: TextStyle(
+                                color: const Color(0xFF8FA3C4),
+                                fontSize: nextLabelSize,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 6,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            next.isEmpty
+                                ? const Text('—', style: TextStyle(color: Colors.white54, fontSize: 32))
+                                : Wrap(
+                                    spacing: 24,
+                                    runSpacing: 16,
+                                    alignment: WrapAlignment.center,
+                                    children: next
+                                        .map((e) => Text(
+                                              e.displayNumber,
+                                              style: TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: nextNumberSize,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ))
+                                        .toList(),
+                                  ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),

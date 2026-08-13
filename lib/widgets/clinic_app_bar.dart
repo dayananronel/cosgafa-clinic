@@ -20,8 +20,17 @@ class ClinicAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.currentUser;
+    // Below this width the user's name/role label is dropped and the icon
+    // actions get tighter spacing so the bar never overflows on a phone.
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
+
     return AppBar(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+      titleSpacing: isCompact ? 12 : null,
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w800),
+        overflow: TextOverflow.ellipsis,
+      ),
       actions: [
         ...?actions,
         IconButton(
@@ -44,12 +53,13 @@ class ClinicAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         if (user != null)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: EdgeInsets.symmetric(horizontal: isCompact ? 2 : 8),
             child: PopupMenuButton<String>(
               tooltip: user.name,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     CircleAvatar(
                       radius: 16,
@@ -62,16 +72,18 @@ class ClinicAppBar extends StatelessWidget implements PreferredSizeWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(user.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                        Text(user.role.label,
-                            style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                      ],
-                    ),
+                    if (!isCompact) ...[
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(user.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                          Text(user.role.label,
+                              style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -89,7 +101,7 @@ class ClinicAppBar extends StatelessWidget implements PreferredSizeWidget {
               ],
             ),
           ),
-        const SizedBox(width: 8),
+        SizedBox(width: isCompact ? 2 : 8),
       ],
     );
   }

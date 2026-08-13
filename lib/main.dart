@@ -26,7 +26,7 @@ class CosgafaClinicApp extends StatelessWidget {
         ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider(repository)),
       ],
       child: MaterialApp(
-        title: 'Cosgafa Pediatric Clinic',
+        title: 'Dr. Michelle Cosgafa Paediatrics Clinic',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         home: const LoginScreen(),

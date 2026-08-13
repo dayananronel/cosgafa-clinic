@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/clinic_logo.dart';
 import '../doctor/doctor_dashboard_screen.dart';
 import '../public/public_display_screen.dart';
 import '../secretary/secretary_dashboard_screen.dart';
@@ -29,25 +30,14 @@ class LoginScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      Icons.child_care,
-                      size: 38,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
-                  ),
+                  const ClinicLogo(size: 84),
                   const SizedBox(height: 20),
                   Text(
-                    'Cosgafa Pediatric Clinic',
+                    'Dr. Michelle Cosgafa\nPaediatrics Clinic',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
+                          height: 1.2,
                         ),
                   ),
                   const SizedBox(height: 6),

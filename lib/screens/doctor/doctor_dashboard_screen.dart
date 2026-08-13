@@ -327,55 +327,89 @@ class _NextPatientRow extends StatelessWidget {
     final patient = repo.patientForQueueEntry(entry);
     final category = repo.categoryById(entry.priorityCategoryId);
 
+    final identity = Row(
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.surfaceContainerHighest),
+          child: Text('$position', style: const TextStyle(fontWeight: FontWeight.w800)),
+        ),
+        const SizedBox(width: 12),
+        PatientAvatar(patient.initials),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Text(entry.displayNumber, style: TextStyle(fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary)),
+                const SizedBox(width: 8),
+                Flexible(child: Text(patient.fullName, style: const TextStyle(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+              ]),
+              Wrap(
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  PriorityBadge(category),
+                  Text('Arrived ${Formatters.shortTime(entry.checkedInAt)}',
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    final actions = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: 'Prioritize',
+          icon: const Icon(Icons.priority_high),
+          onPressed: () => showPriorityOverrideDialog(
+            context,
+            entry: entry,
+            patient: patient,
+            currentPosition: position,
+          ),
+        ),
+        if (canCall)
+          FilledButton(
+            onPressed: () => repo.callPatient(entry.id, actor: actor),
+            child: const Text('Call'),
+          ),
+      ],
+    );
+
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        child: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.surfaceContainerHighest),
-              child: Text('$position', style: const TextStyle(fontWeight: FontWeight.w800)),
-            ),
-            const SizedBox(width: 12),
-            PatientAvatar(patient.initials),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // The position badge, avatar, prioritize icon, and Call button
+            // are all fixed-width; below ~380px that leaves too little
+            // room for the patient name, so the actions move to their own
+            // row instead of squeezing it.
+            if (constraints.maxWidth < 380) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('${entry.displayNumber}  ${patient.fullName}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                  Wrap(
-                    spacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      PriorityBadge(category),
-                      Text('Arrived ${Formatters.shortTime(entry.checkedInAt)}',
-                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                    ],
-                  ),
+                  identity,
+                  Align(alignment: Alignment.centerRight, child: actions),
                 ],
-              ),
-            ),
-            IconButton(
-              tooltip: 'Prioritize',
-              icon: const Icon(Icons.priority_high),
-              onPressed: () => showPriorityOverrideDialog(
-                context,
-                entry: entry,
-                patient: patient,
-                currentPosition: position,
-              ),
-            ),
-            if (canCall)
-              FilledButton(
-                onPressed: () => repo.callPatient(entry.id, actor: actor),
-                child: const Text('Call'),
-              ),
-          ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: identity),
+                actions,
+              ],
+            );
+          },
         ),
       ),
     );

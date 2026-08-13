@@ -12,7 +12,7 @@ void main() {
     await tester.pumpWidget(CosgafaClinicApp(repository: repository));
     await tester.pumpAndSettle();
 
-    expect(find.text('Cosgafa Pediatric Clinic'), findsOneWidget);
+    expect(find.text('Dr. Michelle Cosgafa\nPaediatrics Clinic'), findsOneWidget);
     expect(find.text('Sign in as'), findsOneWidget);
     expect(find.text('Grace Villanueva'), findsOneWidget);
     expect(find.text('Dr. Ramon Cosgafa'), findsOneWidget);

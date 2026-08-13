@@ -152,54 +152,79 @@ class _EntryList extends StatelessWidget {
         final entry = entries[index];
         final patient = repo.patientForQueueEntry(entry);
         final category = repo.categoryById(entry.priorityCategoryId);
+
+        final leading = Row(
+          children: [
+            if (showPosition)
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                ),
+                child: Text('${index + 1}', style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            if (showPosition) const SizedBox(width: 12),
+            PatientAvatar(patient.initials),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Text(entry.displayNumber, style: TextStyle(fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary)),
+                    const SizedBox(width: 8),
+                    Flexible(child: Text(patient.fullName, style: const TextStyle(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+                  ]),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      PriorityBadge(category),
+                      Text('Arrived ${Formatters.shortTime(entry.checkedInAt)}',
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      StatusBadge(entry.status, dense: true),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
         return Card(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              children: [
-                if (showPosition)
-                  Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                    child: Text('${index + 1}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                  ),
-                if (showPosition) const SizedBox(width: 12),
-                PatientAvatar(patient.initials),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Below this width, a trailing action button crowds the
+                // patient name (and the identity + priority + status
+                // content already needs room for showPosition/badges), so
+                // the action drops to its own full-width row instead.
+                final stackAction = actionBuilder != null && constraints.maxWidth < 380;
+                if (actionBuilder == null) return leading;
+                if (stackAction) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(children: [
-                        Text(entry.displayNumber, style: TextStyle(fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary)),
-                        const SizedBox(width: 8),
-                        Flexible(child: Text(patient.fullName, style: const TextStyle(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
-                      ]),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          PriorityBadge(category),
-                          Text('Arrived ${Formatters.shortTime(entry.checkedInAt)}',
-                              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                          StatusBadge(entry.status, dense: true),
-                        ],
-                      ),
+                      leading,
+                      const SizedBox(height: 10),
+                      actionBuilder!(entry),
                     ],
-                  ),
-                ),
-                if (actionBuilder != null) ...[
-                  const SizedBox(width: 8),
-                  actionBuilder!(entry),
-                ],
-              ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: leading),
+                    const SizedBox(width: 8),
+                    actionBuilder!(entry),
+                  ],
+                );
+              },
             ),
           ),
         );
