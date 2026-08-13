@@ -94,10 +94,23 @@ create table queue_entries (
 );
 create index queue_entries_status_idx on queue_entries (status);
 create index queue_entries_ordering_idx on queue_entries (priority_level, checked_in_at);
+
+-- Postgres won't allow timestamptz::date directly in an index because the
+-- built-in cast is timezone-session-dependent (STABLE, not IMMUTABLE).
+-- This wrapper pins the conversion to UTC, which is deterministic, so it
+-- can safely be declared IMMUTABLE for indexing purposes.
+create or replace function clinic_day(ts timestamptz)
+returns date
+language sql
+immutable
+as $$
+  select (ts at time zone 'utc')::date;
+$$;
+
 -- Queue numbers reset daily (ClinicPolicy.queueNumberResetsDaily) and must
 -- be unique within a day, not globally.
 create unique index queue_number_per_day
-  on queue_entries (queue_number, (checked_in_at::date));
+  on queue_entries (queue_number, clinic_day(checked_in_at));
 
 -- Atomic per-day queue-number counter (spec 6 Step 2, 7.2). A plain
 -- "select max(queue_number)+1" races under concurrent check-ins; this

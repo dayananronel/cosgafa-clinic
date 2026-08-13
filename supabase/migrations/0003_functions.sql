@@ -124,7 +124,9 @@ declare
   v_entry queue_entries;
   v_normal_category_id uuid;
   v_normal_priority_level int;
-  v_today date := current_date;
+  -- Matches the clinic_day() used by the queue_number_per_day unique
+  -- index (0001_schema.sql) — both must agree on what "today" means.
+  v_today date := clinic_day(now());
   v_queue_number int;
 begin
   perform require_staff();
@@ -281,17 +283,18 @@ $$;
 
 create or replace function call_patient(p_queue_entry_id uuid) returns queue_entries
 language plpgsql security definer set search_path = public as $$
-declare v_entry queue_entries; v_old queue_status; v_serving_count int;
+declare v_entry queue_entries; v_old queue_status;
 begin
   perform require_staff();
 
   -- Locks any currently-serving rows for today so two simultaneous
   -- "call" attempts can't both succeed (spec Rule 6 / section 23.6).
-  select count(*) into v_serving_count
-    from queue_entries
-    where status in ('CALLED', 'IN_CONSULTATION') and checked_in_at::date = current_date and id <> p_queue_entry_id
+  -- (FOR UPDATE can't be combined with count(*), so this uses PERFORM +
+  -- FOUND instead — PERFORM still locks every matching row.)
+  perform id from queue_entries
+    where status in ('CALLED', 'IN_CONSULTATION') and clinic_day(checked_in_at) = clinic_day(now()) and id <> p_queue_entry_id
     for update;
-  if v_serving_count > 0 then
+  if found then
     raise exception 'INVALID_TRANSITION: A patient is already being served. Complete or skip that consultation first.';
   end if;
 
@@ -315,7 +318,7 @@ begin
   perform require_staff();
   select id into v_next_id
     from queue_entries
-    where status = 'WAITING_FOR_DOCTOR' and checked_in_at::date = current_date
+    where status = 'WAITING_FOR_DOCTOR' and clinic_day(checked_in_at) = clinic_day(now())
     order by priority_level asc, checked_in_at asc
     limit 1
     for update skip locked;
