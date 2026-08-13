@@ -57,7 +57,12 @@ jobs:
       # CDN, so the preview keeps working on networks that block it.
       - run: flutter build web --release --web-renderer html --base-href "/${{ github.event.repository.name }}/"
 
+      # enablement: true lets this action turn Pages on (source =
+      # GitHub Actions) the first time it runs, instead of only
+      # checking whether it's already configured.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
