@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -30,8 +32,19 @@ Future<void> main() async {
       publishableKey: BackendConfig.supabaseAnonKey,
     );
     final api = SupabaseClinicApi(Supabase.instance.client);
-    await api.initialize();
     final auth = SupabaseAuthProvider(Supabase.instance.client);
+    // Every table's RLS read policy (0002_row_level_security.sql) requires
+    // an authenticated staff session — initializing before sign-in would
+    // fetch zero rows and, since initialize() only ever runs its bulk
+    // fetch + realtime subscribe once, never pick up real data afterwards.
+    // Wait for a real session instead; onAuthStateChange replays the
+    // current session immediately, so this also covers a page reload with
+    // an already-signed-in (persisted) session.
+    Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+      if (state.session != null) {
+        unawaited(api.initialize());
+      }
+    });
     runApp(CosgafaClinicApp(
       clinicApi: api,
       authSession: auth,
