@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../config/backend_config.dart';
 import '../models/models.dart';
 import '../providers/auth_session.dart';
 import '../screens/audit_log_screen.dart';
 import '../screens/auth/login_screen.dart';
+import '../screens/auth/supabase_login_screen.dart';
 import '../screens/public/public_display_screen.dart';
 
 class ClinicAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -90,8 +92,15 @@ class ClinicAppBar extends StatelessWidget implements PreferredSizeWidget {
               onSelected: (value) {
                 if (value == 'signout') {
                   context.read<AuthSession>().signOut();
+                  // Must match whichever backend is active: LoginScreen
+                  // reads AuthProvider, which is only registered for the
+                  // demo backend (main.dart) -- pushing it unconditionally
+                  // threw ProviderNotFoundException in Supabase mode.
+                  final loginScreen = BackendConfig.mode == BackendMode.supabase
+                      ? const SupabaseLoginScreen()
+                      : const LoginScreen();
                   Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    MaterialPageRoute(builder: (_) => loginScreen),
                     (route) => false,
                   );
                 }
