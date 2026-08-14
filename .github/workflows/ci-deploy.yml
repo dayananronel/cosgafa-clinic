@@ -62,7 +62,19 @@ jobs:
       # asset base href must match or every asset request 404s. The html
       # renderer avoids a runtime dependency on the external CanvasKit
       # CDN, so the preview keeps working on networks that block it.
-      - run: flutter build web --release --web-renderer html --base-href "/${{ github.event.repository.name }}/"
+      #
+      # BACKEND=supabase points the deployed build at the real Phase 2
+      # backend (supabase/README.md) instead of the in-memory demo.
+      # Requires the SUPABASE_URL / SUPABASE_ANON_KEY repository secrets
+      # to be set (Settings -> Secrets and variables -> Actions) --
+      # without them BackendConfig.isSupabaseConfigured is false and the
+      # app shows a "configuration needed" screen instead of the demo.
+      - run: >
+          flutter build web --release --web-renderer html
+          --base-href "/${{ github.event.repository.name }}/"
+          --dart-define=BACKEND=supabase
+          --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
 
       # enablement: true lets this action turn Pages on (source =
       # GitHub Actions) the first time it runs, instead of only
