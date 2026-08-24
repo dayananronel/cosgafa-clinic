@@ -17,7 +17,7 @@ create or replace function guest_check_in(
   p_middle_name text,
   p_last_name text,
   p_birthdate date,
-  p_sex sex,
+  p_sex public.sex,
   p_address text,
   p_guardian_name text,
   p_guardian_contact text,
@@ -88,4 +88,4 @@ $$;
 -- other RPC still calls require_staff()/require_doctor() internally, and
 -- no table gets a direct INSERT/SELECT policy for anon (see 0002's
 -- "direct table writes ... not granted" note, which still holds).
-grant execute on function guest_check_in(text, text, text, date, sex, text, text, text, text) to anon, authenticated;
+grant execute on function guest_check_in(text, text, text, date, public.sex, text, text, text, text) to anon, authenticated;
