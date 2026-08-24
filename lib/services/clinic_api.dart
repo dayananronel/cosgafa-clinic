@@ -53,6 +53,24 @@ abstract class ClinicApi extends ChangeNotifier with ClinicDataCache {
     required String actor,
   });
 
+  /// Guest Mode (spec-adjacent addition, not in the original spec): lets a
+  /// patient/guardian register and check themselves in from an
+  /// unauthenticated device — no `actor`, since nobody is signed in. New
+  /// patients only; unlike [checkIn] there is no "existing patient"
+  /// variant here, since that would require exposing patient search to an
+  /// unauthenticated caller (see supabase/migrations/0005_guest_check_in.sql).
+  Future<({Patient patient, Visit visit, QueueEntry queueEntry})> guestCheckIn({
+    required String firstName,
+    String middleName = '',
+    required String lastName,
+    required DateTime birthdate,
+    required Sex sex,
+    required String address,
+    required String guardianName,
+    required String guardianContact,
+    required String reasonForVisit,
+  });
+
   Future<QueueEntry> startIntake(String queueEntryId, {required String actor});
 
   Future<QueueEntry> recordVitals(

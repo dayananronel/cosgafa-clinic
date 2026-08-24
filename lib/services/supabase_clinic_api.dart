@@ -268,6 +268,52 @@ class SupabaseClinicApi extends ClinicApi {
   }
 
   @override
+  Future<({Patient patient, Visit visit, QueueEntry queueEntry})> guestCheckIn({
+    required String firstName,
+    String middleName = '',
+    required String lastName,
+    required DateTime birthdate,
+    required Sex sex,
+    required String address,
+    required String guardianName,
+    required String guardianContact,
+    required String reasonForVisit,
+  }) async {
+    // Not a composite-row RPC like the others, so this bypasses the _rpc
+    // helper (which assumes the result is exactly one table row) and
+    // decodes the {patient, visit, queue_entry} object guest_check_in
+    // returns directly (see supabase/migrations/0005_guest_check_in.sql —
+    // an unauthenticated caller can't do a follow-up table SELECT the way
+    // checkIn()'s _fetchVisit does, since every read policy requires
+    // is_active_staff()).
+    Map<String, dynamic> json;
+    try {
+      final result = await _client.rpc('guest_check_in', params: {
+        'p_first_name': firstName,
+        'p_middle_name': middleName,
+        'p_last_name': lastName,
+        'p_birthdate': birthdate.toIso8601String().split('T').first,
+        'p_sex': enumToDb(sex),
+        'p_address': address,
+        'p_guardian_name': guardianName,
+        'p_guardian_contact': guardianContact,
+        'p_reason_for_visit': reasonForVisit,
+      });
+      json = Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _translateAndRethrow(e);
+    }
+    final patient = patientFromJson(Map<String, dynamic>.from(json['patient'] as Map));
+    final visit = visitFromJson(Map<String, dynamic>.from(json['visit'] as Map));
+    final entry = queueEntryFromJson(Map<String, dynamic>.from(json['queue_entry'] as Map));
+    patientsById[patient.id] = patient;
+    visitsById[visit.id] = visit;
+    queueEntriesById[entry.id] = entry;
+    notifyListeners();
+    return (patient: patient, visit: visit, queueEntry: entry);
+  }
+
+  @override
   Future<QueueEntry> startIntake(String queueEntryId, {required String actor}) =>
       _rpcQueueEntry('start_intake', {'p_queue_entry_id': queueEntryId});
 

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/supabase_auth_provider.dart';
 import '../../widgets/clinic_logo.dart';
+import '../guest/guest_check_in_screen.dart';
 import '../public/public_display_screen.dart';
 import 'home_for_role.dart';
 
@@ -110,6 +111,19 @@ class _SupabaseLoginScreenState extends State<SupabaseLoginScreen> {
                           ? const SizedBox(
                               width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Text('Sign In'),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const GuestCheckInScreen()),
+                          );
+                        },
+                        icon: const Icon(Icons.person_add_alt_1_outlined),
+                        label: const Text('Check In as Guest'),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextButton.icon(

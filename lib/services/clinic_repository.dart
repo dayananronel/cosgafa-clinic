@@ -206,6 +206,34 @@ class ClinicRepository extends ClinicApi {
     return (patient: patient, visit: visit, queueEntry: entry);
   }
 
+  static const _guestActor = 'Guest (self check-in)';
+
+  @override
+  Future<({Patient patient, Visit visit, QueueEntry queueEntry})> guestCheckIn({
+    required String firstName,
+    String middleName = '',
+    required String lastName,
+    required DateTime birthdate,
+    required Sex sex,
+    required String address,
+    required String guardianName,
+    required String guardianContact,
+    required String reasonForVisit,
+  }) async {
+    final patient = await registerPatient(
+      firstName: firstName,
+      middleName: middleName,
+      lastName: lastName,
+      birthdate: birthdate,
+      sex: sex,
+      address: address,
+      guardianName: guardianName,
+      guardianContact: guardianContact,
+      actor: _guestActor,
+    );
+    return checkIn(newlyRegisteredPatient: patient, reasonForVisit: reasonForVisit, actor: _guestActor);
+  }
+
   QueueEntry _requireEntry(String id) {
     final e = queueEntriesById[id];
     if (e == null) throw ArgumentError('Unknown queue entry: $id');
