@@ -213,7 +213,7 @@ void main() {
 
       expect(result.patient.fullName, contains('Guest'));
       expect(result.queueEntry.status, QueueStatus.waitingForIntake);
-      expect(repo.patientsById[result.patient.id], isNotNull);
+      expect(repo.getPatient(result.patient.id), isNotNull);
       // No staff was signed in to perform this -- confirms it doesn't
       // silently require/assume an authenticated actor.
       expect(result.patient.createdBy, isNot(isEmpty));

@@ -33,6 +33,31 @@ class SupabaseClinicApi extends ClinicApi {
   final SupabaseClient _client;
   final List<RealtimeChannel> _channels = [];
   bool _initialized = false;
+  bool _publicInitialized = false;
+  RealtimeChannel? _publicChannel;
+
+  @override
+  Future<void> ensurePublicQueueVisible() async {
+    // Once a staff member signs in, the full initialize() below already
+    // covers queue_entries (plus everything else) -- no need for this
+    // narrower, unauthenticated-safe path too.
+    if (_initialized || _publicInitialized) return;
+    _publicInitialized = true;
+    await _loadTable('queue_entries', (rows) {
+      queueEntriesById
+        ..clear()
+        ..addEntries(rows.map(queueEntryFromJson).map((e) => MapEntry(e.id, e)));
+    });
+    _publicChannel = _client.channel('public:queue-display')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'queue_entries',
+        callback: (payload) => _applyChange(payload, queueEntriesById, queueEntryFromJson, (e) => e.id),
+      )
+      ..subscribe();
+    notifyListeners();
+  }
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -160,6 +185,8 @@ class SupabaseClinicApi extends ClinicApi {
     for (final channel in _channels) {
       _client.removeChannel(channel);
     }
+    final publicChannel = _publicChannel;
+    if (publicChannel != null) _client.removeChannel(publicChannel);
     super.dispose();
   }
 

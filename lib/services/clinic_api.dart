@@ -25,6 +25,16 @@ abstract class ClinicApi extends ChangeNotifier with ClinicDataCache {
     this.policy = policy ?? const ClinicPolicy();
   }
 
+  /// Ensures the Public Queue Display (spec 10.6) can render even when
+  /// nobody has signed in on this device — a waiting-room TV. The rest of
+  /// [ClinicDataCache] only gets populated after a staff sign-in on the
+  /// Supabase backend (every other read requires it); this covers just
+  /// `queue_entries`, the one table [ClinicDataCache.currentlyServingEntry]
+  /// / [ClinicDataCache.doctorQueueSorted] need and the one table that
+  /// carries no patient-identifying data on its own. No-op for the demo
+  /// backend, whose cache is always already populated.
+  Future<void> ensurePublicQueueVisible() async {}
+
   // ------------------------------------------------------------------
   // Patient Service (spec 9.1)
   // ------------------------------------------------------------------

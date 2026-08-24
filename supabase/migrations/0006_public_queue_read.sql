@@ -1,0 +1,14 @@
+-- Public Queue Display (spec 10.6, section 12) is meant to run on a
+-- waiting-room TV nobody is signed into, but every existing read policy
+-- requires is_active_staff() -- so an anonymous viewer got zero rows,
+-- and the screen only ever appeared to work because whoever opened it
+-- happened to already be signed in as staff.
+--
+-- queue_entries carries no patient-identifying data on its own (no name,
+-- address, or contact number -- see 0001_schema.sql) and is exactly what
+-- ClinicDataCache.currentlyServingEntry / doctorQueueSorted need, so it's
+-- safe to open unconditionally. This is a second, separate permissive
+-- policy (Postgres OR's them) -- the existing is_active_staff()-gated
+-- policy for `authenticated` is untouched, so a doctor/secretary session
+-- still only ever sees data while actively an active staff member.
+create policy queue_entries_public_read on queue_entries for select to anon using (true);

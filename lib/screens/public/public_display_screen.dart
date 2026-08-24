@@ -6,9 +6,26 @@ import '../../services/clinic_api.dart';
 /// Spec 10.6 / 12: Public Queue Display. Shows only queue numbers — never
 /// patient names, addresses, phone numbers, medical history, diagnosis,
 /// reason for visit, or vital signs (spec 10.6's explicit "never
-/// display" list). Safe to project on a TV in the waiting room.
-class PublicDisplayScreen extends StatelessWidget {
+/// display" list). Safe to project on a TV in the waiting room — meant
+/// to be viewed by nobody signed in, so it triggers its own
+/// unauthenticated-safe data fetch (see [ClinicApi.ensurePublicQueueVisible])
+/// rather than depending on a staff sign-in having already populated the
+/// cache, the way every staff-facing screen does.
+class PublicDisplayScreen extends StatefulWidget {
   const PublicDisplayScreen({super.key});
+
+  @override
+  State<PublicDisplayScreen> createState() => _PublicDisplayScreenState();
+}
+
+class _PublicDisplayScreenState extends State<PublicDisplayScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ClinicApi>().ensurePublicQueueVisible();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
