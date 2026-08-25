@@ -81,6 +81,7 @@ class _PriorityOverrideDialogState extends State<_PriorityOverrideDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text('Patient ${widget.entry.displayNumber}'),
+      scrollable: true,
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: Column(
