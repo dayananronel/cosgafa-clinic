@@ -100,7 +100,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: _buildStage(context),
           ),
