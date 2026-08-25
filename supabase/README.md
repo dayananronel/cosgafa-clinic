@@ -14,7 +14,8 @@ Project Settings → API — you'll need both below.
 Open the SQL Editor in the Supabase dashboard and run the files in
 `supabase/migrations/` **in order** (`0001_schema.sql`,
 `0002_row_level_security.sql`, `0003_functions.sql`,
-`0004_realtime.sql`) — paste each one's contents and click Run.
+`0004_realtime.sql`, `0005_guest_check_in.sql`) — paste each one's
+contents and click Run.
 
 ## 3. Create staff accounts
 

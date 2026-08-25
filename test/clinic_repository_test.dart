@@ -197,6 +197,56 @@ void main() {
     });
   });
 
+  group('Guest Mode', () {
+    test('self check-in registers a new patient and enters the queue waiting for intake', () async {
+      final repo = _repoWithCategories();
+      final result = await repo.guestCheckIn(
+        firstName: 'Guest',
+        lastName: 'Walkin',
+        birthdate: DateTime(2024, 3, 1),
+        sex: Sex.female,
+        address: 'Addr',
+        guardianName: 'Guardian',
+        guardianContact: '0900000000',
+        reasonForVisit: 'Fever',
+      );
+
+      expect(result.patient.fullName, contains('Guest'));
+      expect(result.queueEntry.status, QueueStatus.waitingForIntake);
+      expect(repo.getPatient(result.patient.id), isNotNull);
+      // No staff was signed in to perform this -- confirms it doesn't
+      // silently require/assume an authenticated actor.
+      expect(result.patient.createdBy, isNot(isEmpty));
+    });
+
+    test('two separate guest submissions each get their own patient and queue number', () async {
+      final repo = _repoWithCategories();
+      final first = await repo.guestCheckIn(
+        firstName: 'First',
+        lastName: 'Guest',
+        birthdate: DateTime(2024, 1, 1),
+        sex: Sex.male,
+        address: 'Addr',
+        guardianName: 'Guardian',
+        guardianContact: '0900000001',
+        reasonForVisit: 'Fever',
+      );
+      final second = await repo.guestCheckIn(
+        firstName: 'Second',
+        lastName: 'Guest',
+        birthdate: DateTime(2024, 1, 1),
+        sex: Sex.male,
+        address: 'Addr',
+        guardianName: 'Guardian',
+        guardianContact: '0900000002',
+        reasonForVisit: 'Fever',
+      );
+
+      expect(first.patient.id, isNot(equals(second.patient.id)));
+      expect(first.queueEntry.queueNumber, isNot(equals(second.queueEntry.queueNumber)));
+    });
+  });
+
   group('Public display safety', () {
     test('queue entries expose only numbers, never patient identity', () async {
       final repo = _repoWithCategories();

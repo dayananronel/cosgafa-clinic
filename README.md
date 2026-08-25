@@ -76,6 +76,14 @@ See `supabase/README.md` for the one-time project setup this needs.
   (spec section 11).
 - **Public Queue Display** — now-serving and next queue numbers only,
   with no patient-identifying information (spec 10.6, section 12).
+- **Guest Mode** — a patient/guardian can register and check themselves
+  into the queue from an unauthenticated device (e.g. a waiting-room
+  tablet), reachable from the login screen without signing in. New
+  patients only — there's deliberately no way to search existing
+  records from an unauthenticated device. See
+  `supabase/migrations/0005_guest_check_in.sql` for how this stays safe
+  on the Supabase backend (one narrowly-scoped function, everything else
+  still requires staff auth).
 - **Audit log** — every queue-affecting action is written as an
   immutable `QueueEvent` with actor, timestamp, and reason where
   applicable, and is viewable from any screen (spec section 17).

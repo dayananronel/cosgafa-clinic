@@ -25,6 +25,16 @@ abstract class ClinicApi extends ChangeNotifier with ClinicDataCache {
     this.policy = policy ?? const ClinicPolicy();
   }
 
+  /// Ensures the Public Queue Display (spec 10.6) can render even when
+  /// nobody has signed in on this device — a waiting-room TV. The rest of
+  /// [ClinicDataCache] only gets populated after a staff sign-in on the
+  /// Supabase backend (every other read requires it); this covers just
+  /// `queue_entries`, the one table [ClinicDataCache.currentlyServingEntry]
+  /// / [ClinicDataCache.doctorQueueSorted] need and the one table that
+  /// carries no patient-identifying data on its own. No-op for the demo
+  /// backend, whose cache is always already populated.
+  Future<void> ensurePublicQueueVisible() async {}
+
   // ------------------------------------------------------------------
   // Patient Service (spec 9.1)
   // ------------------------------------------------------------------
@@ -51,6 +61,24 @@ abstract class ClinicApi extends ChangeNotifier with ClinicDataCache {
     Patient? newlyRegisteredPatient,
     required String reasonForVisit,
     required String actor,
+  });
+
+  /// Guest Mode (spec-adjacent addition, not in the original spec): lets a
+  /// patient/guardian register and check themselves in from an
+  /// unauthenticated device — no `actor`, since nobody is signed in. New
+  /// patients only; unlike [checkIn] there is no "existing patient"
+  /// variant here, since that would require exposing patient search to an
+  /// unauthenticated caller (see supabase/migrations/0005_guest_check_in.sql).
+  Future<({Patient patient, Visit visit, QueueEntry queueEntry})> guestCheckIn({
+    required String firstName,
+    String middleName = '',
+    required String lastName,
+    required DateTime birthdate,
+    required Sex sex,
+    required String address,
+    required String guardianName,
+    required String guardianContact,
+    required String reasonForVisit,
   });
 
   Future<QueueEntry> startIntake(String queueEntryId, {required String actor});

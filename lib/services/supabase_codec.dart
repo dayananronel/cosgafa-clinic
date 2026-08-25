@@ -103,7 +103,9 @@ QueueEvent queueEventFromJson(Map<String, dynamic> j) => QueueEvent(
       oldPriority: j['old_priority'] as String?,
       newPriority: j['new_priority'] as String?,
       reason: j['reason'] as String?,
-      performedBy: (j['performed_by'] as String?) ?? '',
+      // performed_by is null for Guest Mode events (0005_guest_check_in.sql
+      // — there is no staff id to attribute an unauthenticated check-in to).
+      performedBy: (j['performed_by'] as String?) ?? 'Guest (self check-in)',
       createdAt: _dt(j['created_at']),
       metadata: (j['metadata'] as Map?)?.cast<String, dynamic>() ?? const {},
     );
